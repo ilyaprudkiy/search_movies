@@ -1,7 +1,11 @@
-import 'package:dart_lesson/resources/resources.dart';
+import 'package:dart_lesson/domain/api_client/api_client.dart';
+import 'package:dart_lesson/domain/entity/movie_details_credits.dart';
+import 'package:dart_lesson/library/provider.dart';
+import 'package:dart_lesson/ui/navigation/main_navigation.dart';
 import 'package:dart_lesson/ui/widgets/elements/radial_percent_widget.dart';
-import 'package:dart_lesson/ui/widgets/images.dart';
+import 'package:dart_lesson/ui/widgets/movie_details/movie_details_model.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class MovieDetailsMainInfoWidget extends StatelessWidget {
   const MovieDetailsMainInfoWidget({Key? key}) : super(key: key);
@@ -27,7 +31,11 @@ class MovieDetailsMainInfoWidget extends StatelessWidget {
           child: _DescriptionWidget(),
         ),
         const SizedBox(height: 30),
-        const _PeopleWidgets(),
+        const Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: 10,
+            ),
+            child: _PeopleWidgets()),
       ],
     );
   }
@@ -51,9 +59,10 @@ class _DescriptionWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Text(
-      'An elite Navy SEAL uncovers an international conspiracy while seeking justice for the murder of his pregnant wife.',
-      style: TextStyle(
+    final model = NotifierProvider.watch<MovieDetailsModel>(context);
+    return Text(
+      model?.movieDetails?.overview ?? '',
+      style: const TextStyle(
         color: Colors.white,
         fontSize: 16,
         fontWeight: FontWeight.w400,
@@ -67,17 +76,27 @@ class _TopPosterWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-         Image(image: AssetImage(AppImages.topHeader)),
-         Positioned(
-          top: 20,
-          left: 20,
-          bottom: 20,
-          child: Image(image: AssetImage(AppImages.topHeaderSubImage)),
-        ),
-      ],
-    );
+    final model = NotifierProvider.watch<MovieDetailsModel>(context);
+    final backdropPath = model?.movieDetails?.backdropPath;
+    final posterPath = model?.movieDetails?.posterPath;
+
+    return AspectRatio(
+        aspectRatio: 390 / 219,
+        child: Stack(
+          children: [
+            backdropPath != null
+                ? Image.network(ApiClient.imageUrl(backdropPath))
+                : SizedBox.shrink(),
+            Positioned(
+              top: 20,
+              left: 20,
+              bottom: 20,
+              child: posterPath != null
+                  ? Image.network(ApiClient.imageUrl(posterPath))
+                  : SizedBox.shrink(),
+            ),
+          ],
+        ));
   }
 }
 
@@ -86,28 +105,32 @@ class _MovieNameWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RichText(
+    final model = NotifierProvider.watch<MovieDetailsModel>(context);
+    var year = model?.movieDetails?.releaseDate?.year.toString();
+    year = year != null ? '($year)' : '';
+    return Center(
+        child: RichText(
       maxLines: 3,
       textAlign: TextAlign.center,
-      text: const TextSpan(
+      text: TextSpan(
         children: [
           TextSpan(
-            text: 'Tom Clancy`s Without Remorse',
-            style: TextStyle(
+            text: model?.movieDetails?.title ?? '',
+            style: const TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w600,
             ),
           ),
           TextSpan(
-            text: ' (2021)',
-            style: TextStyle(
+            text: year,
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w400,
             ),
           ),
         ],
       ),
-    );
+    ));
   }
 }
 
@@ -116,6 +139,12 @@ class _ScoreWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final movieDetails =
+        NotifierProvider.watch<MovieDetailsModel>(context)?.movieDetails;
+    var voteAverage = movieDetails?.voteAverage ?? 0;
+    final videos = movieDetails?.videos.results.where((videos) => videos.type == 'Trailer' && videos.site == 'YouTube');
+    final trailerKey = videos?.isNotEmpty == true ? videos?.first.key : null;
+    voteAverage = voteAverage * 10;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
@@ -127,12 +156,12 @@ class _ScoreWidget extends StatelessWidget {
                 width: 40,
                 height: 40,
                 child: RadialPercentWidget(
-                  percent: 0.72,
+                  percent: voteAverage / 100,
                   fillColor: const Color.fromARGB(255, 10, 23, 25),
                   lineColor: const Color.fromARGB(255, 37, 203, 103),
                   freeColor: const Color.fromARGB(255, 25, 54, 31),
                   lineWidth: 3,
-                  child: const Text('72'),
+                  child: Text(voteAverage.toStringAsFixed(0)),
                 ),
               ),
               const SizedBox(width: 10),
@@ -141,15 +170,15 @@ class _ScoreWidget extends StatelessWidget {
           ),
         ),
         Container(width: 1, height: 15, color: Colors.grey),
-        TextButton(
-          onPressed: () {},
-          child: Row(
+       trailerKey != null ?  TextButton(
+          onPressed: ()  => Navigator.of(context).pushNamed(MainNavigationRouteNames.movieTrailerWidget, arguments: trailerKey),
+          child: const Row(
             children: [
               const Icon(Icons.play_arrow),
               const Text('Play Trailer'),
             ],
           ),
-        ),
+        ): const SizedBox.shrink(),
       ],
     );
   }
@@ -160,15 +189,41 @@ class _SummeryWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const ColoredBox(
-      color: Color.fromRGBO(22, 21, 25, 1.0),
+    final model = NotifierProvider.watch<MovieDetailsModel>(context);
+    if (model == null) return const SizedBox.shrink();
+    var texts = <String>[];
+    final releaseDate = model?.movieDetails?.releaseDate;
+    if (releaseDate != null) {
+      model.stringFromDate(releaseDate);
+      texts.add(model.stringFromDate(releaseDate));
+      final productionCountries = model.movieDetails?.productionCountries;
+      if (productionCountries != null && productionCountries.isNotEmpty) {
+        texts.add('(${productionCountries.first.iso})');
+      }
+    }
+    final runtime = model.movieDetails?.runtime ?? 0;
+    final duration = Duration(minutes: runtime);
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    texts.add('${hours}h ${minutes}m');
+    final geners = model.movieDetails?.genres;
+    if (geners != null && geners.isNotEmpty) {
+      var genersNames = <String>[];
+      for (var genr in geners) {
+        genersNames.add(genr.name);
+      }
+      texts.add(genersNames.join(', '));
+    }
+
+    return ColoredBox(
+      color: const Color.fromRGBO(22, 21, 25, 1.0),
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 70),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
         child: Text(
-          'R, 04/29/2021 (US) 1h49m Action, Adventure, Thriller, War',
+          texts.join(' '),
           maxLines: 3,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             color: Colors.white,
             fontSize: 16,
             fontWeight: FontWeight.w400,
@@ -184,6 +239,54 @@ class _PeopleWidgets extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final model = NotifierProvider.watch<MovieDetailsModel>(context);
+    var crew = model?.movieDetails?.credits.crew;
+    if (crew == null || crew.isEmpty) return const SizedBox.shrink();
+    crew = crew.length > 4 ? crew.sublist(0, 4) : crew;
+    var crewChunks = <List<Employee>>[];
+    for (var i = 0; i < crew.length; i += 2) {
+      crewChunks.add(
+        crew.sublist(i, i + 2 > crew.length ? crew.length : i + 2),
+      );
+    }
+
+    return Column(
+      children: crewChunks
+          .map((chunk) => Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: _PeopelsWidgetsRow(employee: chunk)))
+          .toList(),
+    );
+  }
+}
+
+class _PeopelsWidgetsRow extends StatelessWidget {
+  final List<Employee> employee;
+
+  const _PeopelsWidgetsRow({Key? key, required this.employee})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.max,
+      children: employee
+          .map((employee) => _PeopleWidgetsRowItem(
+                employee: employee,
+              ))
+          .toList(),
+    );
+  }
+}
+
+class _PeopleWidgetsRowItem extends StatelessWidget {
+  final Employee employee;
+
+  const _PeopleWidgetsRowItem({Key? key, required this.employee})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
     const nameStyle = TextStyle(
       color: Colors.white,
       fontSize: 16,
@@ -194,50 +297,13 @@ class _PeopleWidgets extends StatelessWidget {
       fontSize: 16,
       fontWeight: FontWeight.w400,
     );
-    return Column(
+    return Expanded(
+        child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisSize: MainAxisSize.max,
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Stefano Sollima', style: nameStyle),
-                const Text('Director', style: jobTilteStyle),
-              ],
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Stefano Sollima', style: nameStyle),
-                const Text('Director', style: jobTilteStyle),
-              ],
-            )
-          ],
-        ),
-        const SizedBox(height: 20),
-        Row(
-          mainAxisSize: MainAxisSize.max,
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Stefano Sollima', style: nameStyle),
-                const Text('Director', style: jobTilteStyle),
-              ],
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Stefano Sollima', style: nameStyle),
-                const Text('Director', style: jobTilteStyle),
-              ],
-            )
-          ],
-        ),
+        Text(employee.originalName, style: nameStyle),
+        Text(employee.job, style: jobTilteStyle),
       ],
-    );
+    ));
   }
 }

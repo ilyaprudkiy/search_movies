@@ -34,14 +34,13 @@ class _MainScreenWidgetState extends State<MainScreenWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final model = NotifierProvider.read<MainScreenModel>(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('TMDB'),
         actions: [
           IconButton(
             onPressed: () => SessionDataProvider().setSessionId(null),
-            icon: const Icon(Icons.search),
+            icon: const Icon(Icons.search , color: Colors.white,),
           )
         ],
       ),
@@ -50,7 +49,8 @@ class _MainScreenWidgetState extends State<MainScreenWidget> {
         children: [
           const NewsWidget(),
           NotifierProvider(
-            model: movieListModel,
+            create:() => movieListModel,
+            isManagingModel: false,
             child: const MovieListWidget(),
           ),
           TWShowListWidget(),

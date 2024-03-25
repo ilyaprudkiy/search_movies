@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import '../../navigation/main_navigation.dart';
+import '../../theme/app_bar_and_serach_color.dart';
 import 'my_app_model.dart';
 
 class MyApp extends StatelessWidget {
@@ -16,7 +17,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        appBarTheme: const AppBarTheme(
+        appBarTheme: const AppBarTheme(titleTextStyle: AppBartxtColor.styleWhite,
           backgroundColor: AppColors.mainDarkBlue,
         ),
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(

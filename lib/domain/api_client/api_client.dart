@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dart_lesson/domain/entity/movie_details.dart';
 import 'package:dart_lesson/domain/entity/popular_movie_response.dart';
 
 enum ApiClientExceptionType { Network, Auth, Other }
@@ -13,7 +14,7 @@ class ApiClientException implements Exception {
 
 class ApiClient {
   final _client = HttpClient();
-  static const _host = 'https://api.themoviedb.org/';
+  static const _host = 'https://api.themoviedb.org/3';
   static const _imageUrl = 'https://image.tmdb.org/t/p/w500';
   static const _apiKey = '718fba42aa0b933ceee8aefaa88eaf0e';
 
@@ -111,7 +112,7 @@ class ApiClient {
       final response = PopularMovieResponse.fromJson(jsonMap);
       return response;
     };
-    final result = _get(
+    final result = await _get(
       '/movie/popular',
       parser,
       <String, dynamic>{
@@ -146,6 +147,29 @@ class ApiClient {
     );
     return result;
   }
+
+  Future<MovieDetails> movieDetails(
+      int movieId,
+      String locale,
+      ) async {
+    final parser = (dynamic json) {
+      final jsonMap = json as Map<String, dynamic>;
+      final response = MovieDetails.fromJson(jsonMap);
+      return response;
+    };
+    final result = _get(
+      '/movie/$movieId',
+      parser,
+      <String, dynamic>{
+        'append_to_response': 'credits,videos',
+        'api_key': _apiKey,
+        'language': locale,
+      },
+    );
+    return result;
+  }
+
+
 
   Future<String> _validateUser({
     required String username,

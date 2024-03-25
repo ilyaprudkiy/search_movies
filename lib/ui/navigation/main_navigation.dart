@@ -1,4 +1,3 @@
-
 import 'package:dart_lesson/ui/widgets/auth/auth_widget.dart';
 import 'package:dart_lesson/ui/widgets/main_screen/main_screen_model.dart';
 import 'package:dart_lesson/ui/widgets/main_screen/main_screen_widget.dart';
@@ -7,11 +6,14 @@ import 'package:flutter/material.dart';
 
 import '../../library/provider.dart';
 import '../widgets/auth/auth_widget_model.dart';
+import '../widgets/movie_details/movie_details_model.dart';
+import '../widgets/movie_trailer/movie_trailer_widgets.dart';
 
 abstract class MainNavigationRouteNames {
   static const auth = 'auth';
   static const mainScreen = '/';
   static const movieDetails = '/movie_details';
+  static const movieTrailerWidget = '/movie_details/trailer';
 }
 
 class MainNavigation {
@@ -21,21 +23,30 @@ class MainNavigation {
 
   final routes = <String, Widget Function(BuildContext)>{
     MainNavigationRouteNames.auth: (context) => NotifierProvider(
-      model: AuthModel(),
-      child: const AuthWidget(),
-    ),
+          create: () => AuthModel(),
+          child: const AuthWidget(),
+        ),
     MainNavigationRouteNames.mainScreen: (context) => NotifierProvider(
-      model: MainScreenModel(),
-      child: const MainScreenWidget(),
-    ),
+          create: () => MainScreenModel(),
+          child: const MainScreenWidget(),
+        ),
   };
+
   Route<Object> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
       case MainNavigationRouteNames.movieDetails:
         final arguments = settings.arguments;
         final movieId = arguments is int ? arguments : 0;
         return MaterialPageRoute(
-          builder: (context) => MovieDetailsWidget(movieId: movieId),
+          builder: (context) => NotifierProvider(
+              create: () => MovieDetailsModel(movieId),
+              child: MovieDetailsWidget()),
+        );
+      case MainNavigationRouteNames.movieTrailerWidget:
+        final arguments = settings.arguments;
+        final yotubeKey = arguments is String ? arguments : '';
+        return MaterialPageRoute(
+          builder: (context) => MovieTrailerWidget(yotubeKey: yotubeKey),
         );
       default:
         const widget = Text('Navigation error!!!');
