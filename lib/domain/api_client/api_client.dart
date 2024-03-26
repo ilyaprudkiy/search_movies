@@ -44,10 +44,10 @@ class ApiClient {
   }
 
   Future<T> _get<T>(
-      String path,
-      T Function(dynamic json) parser, [
-        Map<String, dynamic>? parameters,
-      ]) async {
+    String path,
+    T Function(dynamic json) parser, [
+    Map<String, dynamic>? parameters,
+  ]) async {
     final url = _makeUri(path, parameters);
     try {
       final request = await _client.getUrl(url);
@@ -66,11 +66,11 @@ class ApiClient {
   }
 
   Future<T> _post<T>(
-      String path,
-      Map<String, dynamic> bodyParameters,
-      T Function(dynamic json) parser, [
-        Map<String, dynamic>? urlParameters,
-      ]) async {
+    String path,
+    Map<String, dynamic> bodyParameters,
+    T Function(dynamic json) parser, [
+    Map<String, dynamic>? urlParameters,
+  ]) async {
     try {
       final url = _makeUri(path, urlParameters);
       final request = await _client.postUrl(url);
@@ -125,10 +125,10 @@ class ApiClient {
   }
 
   Future<PopularMovieResponse> searchMovie(
-      int page,
-      String locale,
-      String query,
-      ) async {
+    int page,
+    String locale,
+    String query,
+  ) async {
     final parser = (dynamic json) {
       final jsonMap = json as Map<String, dynamic>;
       final response = PopularMovieResponse.fromJson(jsonMap);
@@ -149,9 +149,9 @@ class ApiClient {
   }
 
   Future<MovieDetails> movieDetails(
-      int movieId,
-      String locale,
-      ) async {
+    int movieId,
+    String locale,
+  ) async {
     final parser = (dynamic json) {
       final jsonMap = json as Map<String, dynamic>;
       final response = MovieDetails.fromJson(jsonMap);
@@ -169,7 +169,25 @@ class ApiClient {
     return result;
   }
 
-
+  Future<bool> isFavorite(
+    int movieId,
+    String sessionId,
+  ) async {
+    final parser = (dynamic json) {
+      final jsonMap = json as Map<String, dynamic>;
+      final result = jsonMap['favorite'] as bool;
+      return result;
+    };
+    final result = _get(
+      '/movie/$movieId}/account_states',
+      parser,
+      <String, dynamic>{
+        'api_key': _apiKey,
+        'session_id': sessionId,
+      },
+    );
+    return result;
+  }
 
   Future<String> _validateUser({
     required String username,

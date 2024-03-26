@@ -95,6 +95,14 @@ class _TopPosterWidget extends StatelessWidget {
                   ? Image.network(ApiClient.imageUrl(posterPath))
                   : SizedBox.shrink(),
             ),
+            Positioned(
+              top: 5,
+                right: 5,
+                child: IconButton(
+                    onPressed: () {},
+                    icon:  Icon( model?.isFavorites == true ?
+                      Icons.favorite : Icons.favorite_border_outlined,
+                    )))
           ],
         ));
   }
@@ -142,7 +150,8 @@ class _ScoreWidget extends StatelessWidget {
     final movieDetails =
         NotifierProvider.watch<MovieDetailsModel>(context)?.movieDetails;
     var voteAverage = movieDetails?.voteAverage ?? 0;
-    final videos = movieDetails?.videos.results.where((videos) => videos.type == 'Trailer' && videos.site == 'YouTube');
+    final videos = movieDetails?.videos.results.where(
+        (videos) => videos.type == 'Trailer' && videos.site == 'YouTube');
     final trailerKey = videos?.isNotEmpty == true ? videos?.first.key : null;
     voteAverage = voteAverage * 10;
     return Row(
@@ -170,15 +179,19 @@ class _ScoreWidget extends StatelessWidget {
           ),
         ),
         Container(width: 1, height: 15, color: Colors.grey),
-       trailerKey != null ?  TextButton(
-          onPressed: ()  => Navigator.of(context).pushNamed(MainNavigationRouteNames.movieTrailerWidget, arguments: trailerKey),
-          child: const Row(
-            children: [
-              const Icon(Icons.play_arrow),
-              const Text('Play Trailer'),
-            ],
-          ),
-        ): const SizedBox.shrink(),
+        trailerKey != null
+            ? TextButton(
+                onPressed: () => Navigator.of(context).pushNamed(
+                    MainNavigationRouteNames.movieTrailerWidget,
+                    arguments: trailerKey),
+                child: const Row(
+                  children: [
+                    const Icon(Icons.play_arrow),
+                    const Text('Play Trailer'),
+                  ],
+                ),
+              )
+            : const SizedBox.shrink(),
       ],
     );
   }
