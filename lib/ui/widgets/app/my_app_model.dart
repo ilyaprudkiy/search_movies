@@ -1,4 +1,6 @@
 
+import 'package:dart_lesson/ui/navigation/main_navigation.dart';
+import 'package:flutter/cupertino.dart';
 
 import '../../../domain/data_providers/session_data_provider.dart';
 
@@ -10,5 +12,10 @@ class MyAppModel {
   Future<void> checkAuth() async {
     final sessionId = await _sessionDataProvider.getSessionId();
     _isAuth = sessionId != null;
+  }
+  Future<void> resetSession(BuildContext context) async {
+    await _sessionDataProvider.setSessionId(null);
+    await _sessionDataProvider.setAccountId(null);
+    await Navigator.of(context).pushNamedAndRemoveUntil(MainNavigationRouteNames.auth, (route) => false);
   }
 }

@@ -4,12 +4,24 @@ import 'dart:io';
 import 'package:dart_lesson/domain/entity/movie_details.dart';
 import 'package:dart_lesson/domain/entity/popular_movie_response.dart';
 
-enum ApiClientExceptionType { Network, Auth, Other }
+enum ApiClientExceptionType { Network, Auth, Other, SessionExpired }
 
 class ApiClientException implements Exception {
   final ApiClientExceptionType type;
 
   ApiClientException(this.type);
+}
+enum MediaType { Movie, TV }
+
+extension MediaTypeAsString on MediaType {
+  String asString() {
+    switch (this) {
+      case MediaType.Movie:
+        return 'movie';
+      case MediaType.TV:
+        return 'tv';
+    }
+  }
 }
 
 class ApiClient {
@@ -105,6 +117,26 @@ class ApiClient {
     );
     return result;
   }
+
+  Future<int> getAccountInfo(
+      String sessionId,
+      ) async {
+    final parser = (dynamic json) {
+      final jsonMap = json as Map<String, dynamic>;
+      final result =  jsonMap['id'] as int;
+      return  result;
+    };
+    final result = _get(
+      '/account/{account_id}',
+      parser,
+      <String, dynamic>{
+        'api_key': _apiKey,
+        'session_id': sessionId,
+      },
+    );
+    return result;
+  }
+
 
   Future<PopularMovieResponse> popularMovie(int page, String locale) async {
     final parser = (dynamic json) {
@@ -213,6 +245,34 @@ class ApiClient {
     return result;
   }
 
+  Future<int> markAsFavorite({
+    required int accountId,
+    required String sessionId,
+    required MediaType mediaType,
+    required int mediaId,
+    required bool isFavorite,
+  }) async {
+    final parser = (dynamic json) {
+      return 1;
+    };
+    final parameters = <String, dynamic>{
+      'media_type': mediaType.asString(),
+      'media_id': mediaId,
+      'favorite': isFavorite,
+    };
+    final result = _post(
+      '/account/{account_id}/favorite',
+      parameters,
+      parser,
+      <String, dynamic>{
+        'api_key': _apiKey,
+        'session_id': sessionId,
+      },
+    );
+    return result;
+  }
+
+
   Future<String> _makeSession({
     required String requestToken,
   }) async {
@@ -239,6 +299,8 @@ class ApiClient {
       final code = status is int ? status : 0;
       if (code == 30) {
         throw ApiClientException(ApiClientExceptionType.Auth);
+      } else if(code == 3){
+        throw ApiClientException(ApiClientExceptionType.SessionExpired);
       } else {
         throw ApiClientException(ApiClientExceptionType.Other);
       }
